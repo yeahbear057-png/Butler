@@ -68,8 +68,9 @@ jobs:
       - name: 整理产物
         run: |
           mkdir -p ../out
-          cp android/app/build/outputs/apk/release/*.apk ../out/管家-1.0.6.apk || \
-          cp android/app/build/outputs/apk/debug/*.apk ../out/管家-1.0.6-debug.apk
+          cp android/app/build/outputs/apk/release/*.apk ../out/butler-1.0.6.apk || \
+          cp android/app/build/outputs/apk/debug/*.apk ../out/butler-1.0.6-debug.apk
+          ls -lh ../out
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
