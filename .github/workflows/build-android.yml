@@ -31,7 +31,7 @@ jobs:
           distribution: "temurin"
           java-version: "21"
 
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest 自带 Android SDK（ANDROID_HOME 已就绪，许可已接受），无需额外安装
 
       - name: 安装依赖
         run: npm ci
