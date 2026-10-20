@@ -57,6 +57,7 @@ jobs:
           path: |
             desktop/dist/*.exe
             desktop/dist/*.zip
+          if-no-files-found: error
           retention-days: 30
 
       - name: 挂到 Release（仅打 tag 时）
@@ -66,4 +67,5 @@ jobs:
           files: |
             desktop/dist/*.exe
             desktop/dist/*.zip
+          fail_on_unmatched_files: true
           generate_release_notes: true

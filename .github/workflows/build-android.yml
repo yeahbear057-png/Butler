@@ -76,12 +76,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: butler-android
-          path: mobile/out/*.apk
+          path: out/*.apk
+          if-no-files-found: error
           retention-days: 30
 
       - name: 挂到 Release（仅打 tag 时）
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: mobile/out/*.apk
+          files: out/*.apk
+          fail_on_unmatched_files: true
           generate_release_notes: true
