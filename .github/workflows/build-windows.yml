@@ -47,7 +47,7 @@ jobs:
           # 用 7-Zip 并强制 UTF-8 标志位，避免 PowerShell 压缩中文目录名乱码
           $sevenZip = "C:\Program Files\7-Zip\7z.exe"
           if (-not (Test-Path $sevenZip)) { $sevenZip = "7z" }
-          & $sevenZip a -tzip -mcu=on -mx=5 "dist\butler-portable-1.0.6-win64.zip" "$stage"
+          & $sevenZip a -tzip -mcu=on -mx=5 "dist\butler-portable-1.0.7-win64.zip" "$stage"
           if ($LASTEXITCODE -ne 0) { throw "7z 压缩失败" }
 
       - name: 上传构建产物

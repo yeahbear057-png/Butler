@@ -28,8 +28,13 @@
 
   /* ---------------- 版本信息（侧栏悬停可见） ----------------
      三段式版本号：小迭代 V1.0.1，大版本 V1.1.0 */
-  var APP_VERSION = 'V1.0.6';
+  var APP_VERSION = 'V1.0.7';
   var APP_UPDATES = [
+    { v: 'V1.0.7', date: '2026-10-20', items: [
+      '修复验证码登录报「session is invalid / another client」：登录前自动清理过期本地会话',
+      '验证码登录页可直接设置密码，老账号也能一步设好，之后用密码登录',
+      '桌面版新增启动后自动检查更新，有新版本会弹窗提示一键前往下载'
+    ] },
     { v: 'V1.0.6', date: '2026-10-20', items: [
       '管家现在是可安装的 App：Windows 上一键装成桌面应用，手机加到主屏幕全屏使用',
       '手机端全新底部导航栏，单手就能切换页面，适配全面屏安全区',
@@ -566,7 +571,28 @@
     boot.classList.add('hidden');
     appView.classList.add('hidden');
     authView.classList.remove('hidden');
+    /* 登录页只会在「未登录」时出现，此时本地残留的旧会话一定是过期/无效的，
+       留着会被 SDK 自动附到请求上，服务端会报
+       “the session is invalid, expired or issued for another client” */
+    clearStoredCloudSessions();
     showAuthError(msg || '');
+  }
+
+  function clearStoredCloudSessions() {
+    try {
+      var bad = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('workbuddy-cloud.session.') === 0) bad.push(k);
+      }
+      for (var j = 0; j < bad.length; j++) localStorage.removeItem(bad[j]);
+    } catch (e) { /* 忽略 */ }
+  }
+
+  function isStaleSessionError(e) {
+    var m = '';
+    try { m = errorMessage(e); } catch (e2) { /* 忽略 */ }
+    return /session is invalid|another client|expired/i.test(m);
   }
 
   function isPhone(v) { return /^1\d{10}$/.test(v); }
@@ -603,17 +629,28 @@
     if (target) setTimeout(function () { target.focus(); }, 30);
   }
 
-  /* ---------- 新用户：设置密码界面 ---------- */
-  function showSetPasswordForm(show) {
-    state.needSetPassword = !!show;
+  /* ---------- 登录页设密码区域 ----------
+     existing = 老账号：密码可选（留空直接登录），也支持顺手更新密码；
+     新账号：密码必填。 */
+  function showSetPasswordForm(show, existing) {
+    state.needSetPassword = !!show && !existing;
     otpPasswordBox.classList.toggle('hidden', !show);
     otpLoginBtn.classList.toggle('hidden', !!show);
     otpSetPwdBtn.classList.toggle('hidden', !show);
-    otpSkipBtn.classList.toggle('hidden', !show);
+    otpSkipBtn.classList.toggle('hidden', !show || !!existing);
     if (show) {
       otpPasswordError.textContent = '';
-      authSub.textContent = '验证码已通过，最后一步：给账号设个密码';
-      setTimeout(function () { otpPassword.focus(); }, 30);
+      var head = otpPasswordBox.querySelector('.newpwd-head strong');
+      var sub = otpPasswordBox.querySelector('.newpwd-head span');
+      if (head) head.textContent = existing ? '设置 / 更新登录密码（可选）' : '给账号设一个密码';
+      if (sub) sub.textContent = existing
+        ? '已有密码？这里留空、直接登录即可'
+        : '新手机号首次登录，之后就能用密码进来了';
+      otpPassword.placeholder = existing ? '留空则直接登录；填写则设置 / 更新密码' : '8–20 位，建议字母 + 数字';
+      authSub.textContent = existing
+        ? '验证码已发送；可顺手设置或更新密码，不填直接进'
+        : '验证码已发送，设好密码一起提交';
+      setTimeout(function () { otpCode.focus(); }, 30);
     }
   }
 
@@ -636,6 +673,7 @@
     }
     otpPhoneError.textContent = '';
     showAuthError('');
+    clearStoredCloudSessions(); /* 防止残留旧会话干扰发码 */
     otpSendBtn.disabled = true;
     otpSendBtn.textContent = '发送中…';
     try {
@@ -647,16 +685,86 @@
         verificationId: data.verificationId,
         isExistingUser: data.isExistingUser
       };
-      toast(data.isExistingUser
-        ? '验证码已发送，验证后直接进入'
-        : '验证码已发送，收到后还需要设一个密码');
-      showSetPasswordForm(!data.isExistingUser);
+      toast('验证码已发送，请查收短信');
+      showSetPasswordForm(true, !!data.isExistingUser);
       startCountdown(60);
     } catch (e) {
       otpSendBtn.disabled = false;
       otpSendBtn.textContent = '获取验证码';
       showAuthError(errorMessage(e));
     }
+  }
+
+  /* ---------- 自控验证码流程 ----------
+     SDK 的 verifyOtp 消费验证码后只做「登录」，老账号没机会设密码。
+   这里拆开：verify 拿 verification_token →
+     新账号  /v1/signup 直接带密码注册；
+     老账号  /v1/reset 用验证码凭证设置 / 更新密码，再用新密码正式登录。 */
+  function commitRawSession(d) {
+    d = d || {};
+    var access = typeof d.access_token === 'string' ? d.access_token : '';
+    if (!access) throw new Error('登录响应缺少凭证，请稍后重试');
+    var session = {
+      accessToken: access,
+      refreshToken: typeof d.refresh_token === 'string' ? d.refresh_token : '',
+      expiresAt: Date.now() + (typeof d.expires_in === 'number' ? d.expires_in : 0) * 1000,
+      user: {
+        id: typeof d.sub === 'string' ? d.sub : '',
+        name: typeof d.name === 'string' ? d.name : '',
+        avatarUrl: typeof d.avatar_url === 'string' ? d.avatar_url : '',
+        isAnonymous: d.is_anonymous === true,
+        raw: d
+      }
+    };
+    try {
+      if (cloud.auth && cloud.auth.sessions && cloud.auth.sessions.commitSignIn) {
+        cloud.auth.sessions.commitSignIn(session);
+      }
+    } catch (e) { /* 会话已拿到，本地缓存失败不致命 */ }
+    return session;
+  }
+
+  async function rawVerifyCode(verificationId, code) {
+    var v = await cloud.auth.request('/v1/verification/verify', {
+      method: 'POST',
+      body: { verification_id: verificationId, verification_code: code }
+    });
+    if (v && v.error) throw v.error;
+    var d = (v && v.data) || {};
+    var vt = typeof d.verification_token === 'string' ? d.verification_token : '';
+    if (!vt) throw new Error('验证码校验没有通过');
+    return vt;
+  }
+
+  async function rawSignUp(phone, password, vt) {
+    var body = { phone_number: phone, verification_token: vt };
+    if (password) body.password = password;
+    var r = await cloud.auth.request('/v1/signup', { method: 'POST', body: body });
+    if (r && r.error) throw r.error;
+    return commitRawSession(r.data);
+  }
+
+  async function rawSignInWithToken(phone, vt) {
+    var r = await cloud.auth.request('/v1/signin', {
+      method: 'POST',
+      body: { username: phone, verification_token: vt }
+    });
+    if (r && r.error) throw r.error;
+    return commitRawSession(r.data);
+  }
+
+  async function rawResetPassword(phone, next, vt) {
+    var bodies = [
+      { phone_number: phone, new_password: next, verification_token: vt },
+      { username: phone, new_password: next, verification_token: vt }
+    ];
+    var lastErr = null;
+    for (var i = 0; i < bodies.length; i++) {
+      var r = await cloud.auth.request('/v1/reset', { method: 'POST', body: bodies[i] });
+      if (r && !r.error) return true;
+      lastErr = (r && r.error) || new Error('设置失败');
+    }
+    throw lastErr;
   }
 
   /* ---------- 用验证码登录 / 注册 ---------- */
@@ -676,61 +784,89 @@
       return;
     }
 
-    var password;
-    if (mode === 'set') {
-      var err = validateNewPassword();
-      otpPasswordError.textContent = err;
-      if (err) return;
-      password = String(otpPassword.value);
-    }
-
-    showAuthError('');
-    otpPasswordError.textContent = '';
     var needRegister = !state.pendingOtp.isExistingUser;
+    var password = '';
+    if (mode === 'set') {
+      password = String(otpPassword.value || '');
+      /* 新账号必须设密码；老账号留空 = 直接登录 */
+      if (password || needRegister) {
+        var err = validateNewPassword();
+        otpPasswordError.textContent = err;
+        if (err) return;
+      } else {
+        password = '';
+      }
+    }
     if (mode === 'skip' && needRegister) {
-      // 新用户选择「先不设密码」：同样要注册，只是不带密码
+      /* 新用户选择「先不设密码」：同样要注册，只是不带密码 */
       markPasswordSkipped();
-    } else if (needRegister && !password) {
-      // 新用户但点的是「登录 / 注册」：先把设密码区域露出来
-      showSetPasswordForm(true);
+      password = '';
+    } else if (needRegister && mode !== 'skip' && !password) {
+      /* 新用户但没填密码：把设密码区域露出来 */
+      showSetPasswordForm(true, false);
       showAuthError('这是新手机号，请先设置一个登录密码');
       return;
     }
 
+    showAuthError('');
+    otpPasswordError.textContent = '';
     otpLoginBtn.disabled = true;
     otpSetPwdBtn.disabled = true;
     otpLoginBtn.textContent = '验证中…';
     otpSetPwdBtn.textContent = '保存中…';
     try {
-      var payload = {
-        phone: state.pendingOtp.phone,
-        verificationId: state.pendingOtp.verificationId,
-        isExistingUser: state.pendingOtp.isExistingUser,
-        token: token
-      };
-      if (password) payload.password = password;
-      var res = await cloud.auth.verifyOtp(payload);
-      if (res.error) throw res.error;
+      clearStoredCloudSessions();
+      var vt = await rawVerifyCode(state.pendingOtp.verificationId, token);
+      var sess = null;
+      var pwdSetOk = false;
+      var pwdFailMsg = '';
+
+      if (needRegister) {
+        sess = await rawSignUp(phone, password, vt);
+        if (password) pwdSetOk = true;
+      } else if (password) {
+        /* 老账号设 / 改密码：先重置，再用新密码正式登录 */
+        var resetOk = false;
+        try {
+          await rawResetPassword(phone, password, vt);
+          resetOk = true;
+        } catch (eReset) {
+          pwdFailMsg = errorMessage(eReset);
+        }
+        if (resetOk) {
+          var pr = await cloud.auth.signInWithPassword({ phone: phone, password: password });
+          if (pr && !pr.error) { sess = pr.data; pwdSetOk = true; }
+        }
+        if (!sess) {
+          try {
+            sess = await rawSignInWithToken(phone, vt);
+          } catch (e2) {
+            if (resetOk) throw new Error('密码已设置成功，但自动登录失败：请到「密码登录」用新密码进入');
+            throw new Error('登录失败，请点「重新获取」重发验证码再试');
+          }
+        }
+      } else {
+        sess = await rawSignInWithToken(phone, vt);
+      }
+
       state.pendingOtp = null;
       state.needSetPassword = false;
-      enterApp(res.data);
-      if (password) {
-        if (!needRegister) {
-          /* 老账号：登录成功后顺手试一次免验证码直设；
-             没设过密码的账号服务端不放行，会静默跳过，之后在用户管理里用短信确认设置 */
-          try {
-            if (await trySetPasswordSilent(password)) toast('密码已设置，下次可以直接用密码登录');
-          } catch (e3) { /* 登录已成功，设密失败不打断 */ }
-        } else {
-          setPasswordFlag(true);
-          renderUser();
-        }
-        try { localStorage.removeItem(skipKey()); } catch (e) { /* 忽略 */ }
-        if (state.hasPassword) toast('密码已设置，下次可以直接用密码登录');
+      state.lastLoginPhone = phone;
+      enterApp(sess);
+      if (pwdSetOk) {
+        setPasswordFlag(true);
+        renderUser();
+        toast('密码已设置，下次可以直接用密码登录');
+      } else if (pwdFailMsg) {
+        toast('已进入；密码没设置成功，可在左下角账号设置里再试');
       }
+      try { localStorage.removeItem(skipKey()); } catch (e) { /* 忽略 */ }
     } catch (e) {
       var msg = errorMessage(e);
-      if (password && /password|密码/i.test(msg)) {
+      if (isStaleSessionError(e)) {
+        clearStoredCloudSessions();
+        showAuthError('登录状态已失效，请点「重新获取」重发验证码后再试一次');
+      } else if (password && /password|密码/i.test(msg)) {
         otpPasswordError.textContent = '密码没设置成功，请换一个再试（' + msg + '）';
       } else {
         showAuthError(msg);
@@ -763,6 +899,7 @@
     try {
       var res = await cloud.auth.signInWithPassword({ phone: phone, password: pwd });
       if (res.error) throw res.error;
+      state.lastLoginPhone = phone;
       enterApp(res.data);
     } catch (e) {
       var msg = errorMessage(e);
@@ -896,7 +1033,9 @@
   }
 
   function loginPhone() {
-    var p = (state.user && state.user.phone) || '';
+    var u = state.user || {};
+    /* SDK 归一化后的 user 没有 phone 字段，原始信息在 raw 里；再兜底记登录时输入的号 */
+    var p = u.phone || (u.raw && (u.raw.phone_number || u.raw.phone)) || state.lastLoginPhone || '';
     return p ? String(p).replace(/\D/g, '').slice(-11) : '';
   }
 

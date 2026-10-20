@@ -1,5 +1,5 @@
 {
-  "version": "1.0.6",
-  "notes": "1. 云 SDK 改为本地内置，不再依赖外部 CDN，弱网/内网环境也能正常打开。\n2. 修复首次设置密码报错，改为「验证码确认 → 设置密码」两步。\n3. 知识库支持上传表格、PDF、压缩包等资料（单个 30MB 以内）。\n4. 手机端新增底部导航与「全部功能」面板。",
-  "url": ""
+  "version": "1.0.7",
+  "notes": "1. 修复验证码登录报「session is invalid / another client」的问题。\n2. 验证码登录页可直接设置密码，老账号也能一步设好，之后用密码登录。\n3. 桌面版新增启动后自动检查更新，有新版本弹窗提示。",
+  "url": "https://github.com/yeahbear057-png/Butler/releases/latest"
 }

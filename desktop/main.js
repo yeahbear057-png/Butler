@@ -297,6 +297,9 @@ app.whenReady().then(() => {
 
   globalShortcut.register('Ctrl+Shift+Space', () => { showMainWindow(); quickCapture(); });
 
+  /* 启动后自动检查一次更新：发现新版本会弹窗提示用户前往下载（无新版本不打扰） */
+  setTimeout(() => { checkForUpdates(false).catch(() => {}); }, 15000);
+
   /* 渲染进程要的应用信息 */
   ipcMain.handle('butler-info', () => ({
     desktop: true, platform: process.platform, version: APP_VERSION
