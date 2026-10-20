@@ -3,6 +3,7 @@ node_modules/
 
 # 构建产物
 desktop/dist*/
+desktop/release/
 desktop/release-portable/
 desktop/web/
 mobile/www/
