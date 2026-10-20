@@ -1,0 +1,61 @@
+name: 构建 Windows 安装包
+
+# 手动触发，或打 tag（v1.0.7 这种）自动出包并挂到 Release
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 打包（NSIS 安装包 + 免安装目录）
+        run: npm run dist
+        env:
+          # 未配置证书时跳过签名，避免构建失败
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: 生成绿色版 zip
+        shell: pwsh
+        run: |
+          $src = "dist\win-unpacked"
+          $stage = "dist\portable\管家"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item -Recurse -Force "$src\*" $stage
+          Copy-Item -Force "portable-notes.txt" "$stage\使用说明.txt"
+          Compress-Archive -Path "dist\portable\管家" -DestinationPath "dist\管家-portable-win64.zip" -CompressionLevel Optimal
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: butler-windows
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.zip
+          retention-days: 30
+
+      - name: 挂到 Release（仅打 tag 时）
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/*.exe
+            desktop/dist/*.zip
+          generate_release_notes: true

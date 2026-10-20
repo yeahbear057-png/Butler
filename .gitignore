@@ -1,0 +1,34 @@
+# 依赖
+node_modules/
+
+# 构建产物
+desktop/dist*/
+desktop/release-portable/
+desktop/web/
+mobile/www/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/keystore.properties
+mobile/android/*.jks
+mobile/android/*.keystore
+*.apk
+*.aab
+
+# 本地工具链 / 临时文件
+.android-toolchain/
+butler-toolchain/
+.preview-*.png
+*.log
+*.tsbuildinfo
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# WorkBuddy 会话数据
+.workbuddy/
+*.genie

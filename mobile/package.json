@@ -1,0 +1,17 @@
+{
+  "name": "butler-mobile",
+  "version": "1.0.6",
+  "private": true,
+  "description": "管家 · Android 壳（Capacitor）",
+  "scripts": {
+    "sync": "node scripts/prepare-www.js && npx cap sync android",
+    "open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.4"
+  }
+}

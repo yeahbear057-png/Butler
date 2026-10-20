@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>管家 · 让零散记录长成体系</title>
+<meta name="description" content="随手记想法、待办、知识与案例，自动分类整理，随时问答检索。" />
+<meta name="theme-color" content="#2E6B58" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232E6B58'/%3E%3Cpath d='M9 9h14M9 16h9M9 23h12' stroke='%23F7F5F0' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="boot" class="boot">
+  <div class="boot-mark">知</div>
+  <p>正在打开你的信息库…</p>
+</div>
+
+<!-- ======================= 登录 ======================= -->
+<section id="authView" class="auth hidden">
+  <div class="auth-left">
+    <div class="auth-brand">
+      <span class="brand-mark">知</span>
+      <span class="brand-name">管家</span>
+    </div>
+    <h1 class="auth-title">把零散的想法，<br />慢慢养成自己的体系。</h1>
+    <p class="auth-desc">随手记下一句话、一个链接、一件待办。管家会自动分类、提炼重点、找出关联，并在你需要时给出阶段总结与下一步建议。</p>
+    <ul class="auth-points">
+      <li><span class="dot"></span>自动分类 · 摘要 · 标签</li>
+      <li><span class="dot"></span>关键词检索与带引用的问答</li>
+      <li><span class="dot"></span>待办拆解、整理与阶段回顾</li>
+    </ul>
+    <p class="auth-foot">内容仅存储在你自己的账号下，其他人无法读取。</p>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-card">
+      <h2>进入你的信息库</h2>
+      <p class="auth-sub" id="authSub">首次登录用验证码，同时设置一个密码</p>
+
+      <div class="tabs" id="authTabs">
+        <button class="tab active" data-tab="otp" type="button">验证码登录</button>
+        <button class="tab" data-tab="password" type="button">密码登录</button>
+      </div>
+
+      <!-- 验证码登录 -->
+      <div class="auth-pane" id="paneOtp">
+        <label class="field">
+          <span class="field-label">手机号</span>
+          <input id="otpPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="请输入 11 位手机号" autocomplete="tel" />
+          <span class="field-error" id="otpPhoneError"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">验证码</span>
+          <div class="code-row">
+            <input id="otpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6 位验证码" autocomplete="one-time-code" />
+            <button class="btn ghost code-btn" id="otpSendBtn" type="button">获取验证码</button>
+          </div>
+        </label>
+
+        <div id="otpPasswordBox" class="newpwd-box hidden">
+          <div class="newpwd-head">
+            <strong>给账号设一个密码</strong>
+            <span>新手机号首次登录，之后就能用密码进来了</span>
+          </div>
+          <label class="field">
+            <span class="field-label">设置密码</span>
+            <input id="otpPassword" type="password" maxlength="64" placeholder="8–20 位，建议字母 + 数字" autocomplete="new-password" />
+          </label>
+          <label class="field tight">
+            <span class="field-label">再输一次</span>
+            <input id="otpPassword2" type="password" maxlength="64" placeholder="确认密码" autocomplete="new-password" />
+            <span class="field-error" id="otpPasswordError"></span>
+          </label>
+        </div>
+
+        <button class="btn primary block" id="otpLoginBtn" type="button">登录 / 注册</button>
+        <button class="btn ghost block" id="otpSetPwdBtn" type="button">保存密码并登录</button>
+        <button class="link-btn" id="otpSkipBtn" type="button">这次先不设，直接进去</button>
+      </div>
+
+      <!-- 密码登录 -->
+      <div class="auth-pane hidden" id="panePassword">
+        <label class="field">
+          <span class="field-label">手机号</span>
+          <input id="pwdPhone" type="tel" inputmode="numeric" maxlength="11" placeholder="请输入 11 位手机号" autocomplete="username" />
+          <span class="field-error" id="pwdPhoneError"></span>
+        </label>
+        <label class="field">
+          <span class="field-label">密码</span>
+          <div class="code-row">
+            <input id="pwdPassword" type="password" maxlength="64" placeholder="请输入密码" autocomplete="current-password" />
+            <button class="btn ghost code-btn" id="pwdToggleBtn" type="button">显示</button>
+          </div>
+          <span class="field-error" id="pwdPasswordError"></span>
+        </label>
+        <button class="btn primary block" id="pwdLoginBtn" type="button">密码登录</button>
+        <button class="link-btn" id="pwdToOtpBtn" type="button">忘记密码了，用验证码登录</button>
+      </div>
+
+      <div class="or-divider"><span>或</span></div>
+      <button class="btn wechat block" id="wechatLoginBtn" type="button">微信登录</button>
+
+      <p class="auth-error" id="authError"></p>
+      <p class="auth-note">登录即表示同意仅将内容用于为你提供整理与问答服务。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= 主应用 ======================= -->
+<div id="appView" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand" id="brand" title="">
+      <span class="brand-mark">管</span>
+      <span class="brand-text">
+        <strong>管家 <em class="brand-ver" id="appVer"></em></strong>
+        <small>Personal Butler</small>
+      </span>
+    </div>
+    <div class="ver-tip hidden" id="verTip"></div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="today">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.2"/><path d="M12 8.2v4.2l2.7 1.6"/></svg>
+        <span>今天</span>
+      </button>
+      <button class="nav-item" data-view="inbox">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5v-3.5A1 1 0 0 1 4 16.5z"/></svg>
+        <span>灵感抽屉</span>
+        <em class="nav-count" id="navNoteCount">0</em>
+      </button>
+      <button class="nav-item" data-view="daily">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 4.4h8.1L18.8 9v10.6H6.2z"/><path d="M14 4.4V9h4.4M9.2 12.4h6.4M9.2 15.6h4.4"/></svg>
+        <span>每日笔记</span>
+      </button>
+      <button class="nav-item" data-view="calendar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.4" y="6" width="15.2" height="13.2" rx="2.2"/><path d="M4.4 10.2h15.2M9 4.4v3M15 4.4v3"/></svg>
+        <span>日历</span>
+      </button>
+      <button class="nav-item" data-view="todos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7.2l2 2 3.3-3.6M4.5 14.2l2 2 3.3-3.6M13 7h6.5M13 14h6.5M13 20h6.5"/></svg>
+        <span>待办清单</span>
+        <em class="nav-count" id="navTodoCount">0</em>
+      </button>
+      <button class="nav-item" data-view="gallery">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.4" width="16" height="13.2" rx="2.2"/><circle cx="9.4" cy="10" r="1.6"/><path d="M4.6 16.8l4.4-4 3.4 3 2.8-2.6 4.2 3.8"/></svg>
+        <span>图片库</span>
+        <em class="nav-count" id="navImageCount">0</em>
+      </button>
+      <button class="nav-item" data-view="knowledge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.6 4.4h9.8a2.4 2.4 0 0 1 2.4 2.4v12.8H8a2.4 2.4 0 0 1-2.4-2.4z"/><path d="M5.6 17.2a2.4 2.4 0 0 1 2.4-2.4h9.8"/><path d="M9.2 8.6h4.6M9.2 11.4h4.6"/></svg>
+        <span>知识库</span>
+        <em class="nav-count" id="navKbCount">0</em>
+      </button>
+      <button class="nav-item" data-view="meetings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.6" width="6" height="10.4" rx="3"/><path d="M5.4 11.4a6.6 6.6 0 0 0 13.2 0M12 18v2.4M8.6 20.4h6.8"/></svg>
+        <span>会议纪要</span>
+      </button>
+      <button class="nav-item" data-view="ask">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12.2c0 3.8-3.6 6.9-8 6.9-1 0-2-.2-2.9-.5L4 20.5l1.3-3.4A6.5 6.5 0 0 1 4 12.2c0-3.8 3.6-6.9 8-6.9s8 3.1 8 6.9z"/><path d="M9 11.6h6M9 14.4h3.6"/></svg>
+        <span>智能问答</span>
+      </button>
+      <button class="nav-item" data-view="summary">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.8h12v16.4l-6-3.6-6 3.6z"/><path d="M9.2 8.2h5.6M9.2 11.4h5.6"/></svg>
+        <span>阶段总结</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">常用标签</div>
+      <div class="tag-cloud" id="tagCloud">
+        <span class="tag-empty">记录后自动生成</span>
+      </div>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="user-chip" id="userChip" role="button" tabindex="0" title="账号设置">
+        <span class="avatar" id="userAvatar">我</span>
+        <span class="user-meta">
+          <strong id="userName">已登录</strong>
+          <small id="userSub">数据已同步云端</small>
+        </span>
+        <button class="icon-btn" id="logoutBtn" title="退出登录" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 8.5V5.8A1.8 1.8 0 0 0 13.2 4H6.8A1.8 1.8 0 0 0 5 5.8v12.4A1.8 1.8 0 0 0 6.8 20h6.4a1.8 1.8 0 0 0 1.8-1.8v-2.7M19.5 12H10m9.5 0-3.2-3.2M19.5 12l-3.2 3.2"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 移动端底部导航（窄屏显示） -->
+  <nav class="tabbar" id="tabbar" aria-label="主导航">
+    <button class="tabbar-item active" data-view="today" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.2"/><path d="M12 8.2v4.2l2.7 1.6"/></svg>
+      <span>今天</span>
+    </button>
+    <button class="tabbar-item" data-view="inbox" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5v-3.5A1 1 0 0 1 4 16.5z"/></svg>
+      <span>灵感</span>
+    </button>
+    <button class="tabbar-item" data-view="todos" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7.2l2 2 3.3-3.6M4.5 14.2l2 2 3.3-3.6M13 7h6.5M13 14h6.5M13 20h6.5"/></svg>
+      <span>待办</span>
+    </button>
+    <button class="tabbar-item" data-view="knowledge" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.6 4.4h9.8a2.4 2.4 0 0 1 2.4 2.4v12.8H8a2.4 2.4 0 0 1-2.4-2.4z"/><path d="M5.6 17.2a2.4 2.4 0 0 1 2.4-2.4h9.8"/><path d="M9.2 8.6h4.6M9.2 11.4h4.6"/></svg>
+      <span>知识</span>
+    </button>
+    <button class="tabbar-item" data-view="ask" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12.2c0 3.8-3.6 6.9-8 6.9-1 0-2-.2-2.9-.5L4 20.5l1.3-3.4A6.5 6.5 0 0 1 4 12.2c0-3.8 3.6-6.9 8-6.9s8 3.1 8 6.9z"/><path d="M9 11.6h6M9 14.4h3.6"/></svg>
+      <span>问答</span>
+    </button>
+    <button class="tabbar-item tabbar-more" id="tabMoreBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg>
+      <span>更多</span>
+    </button>
+  </nav>
+
+  <!-- 移动端「更多」面板 -->
+  <div class="more-sheet hidden" id="moreSheet">
+    <div class="more-sheet-mask" id="moreSheetMask"></div>
+    <div class="more-sheet-panel">
+      <div class="more-sheet-title">全部功能</div>
+      <div class="more-grid">
+        <button data-view="daily" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 4.4h8.1L18.8 9v10.6H6.2z"/><path d="M14 4.4V9h4.4M9.2 12.4h6.4M9.2 15.6h4.4"/></svg>
+          <span>每日笔记</span>
+        </button>
+        <button data-view="calendar" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.4" y="6" width="15.2" height="13.2" rx="2.2"/><path d="M4.4 10.2h15.2M9 4.4v3M15 4.4v3"/></svg>
+          <span>日历</span>
+        </button>
+        <button data-view="gallery" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.4" width="16" height="13.2" rx="2.2"/><circle cx="9.4" cy="10" r="1.6"/><path d="M4.6 16.8l4.4-4 3.4 3 2.8-2.6 4.2 3.8"/></svg>
+          <span>图片库</span>
+        </button>
+        <button data-view="meetings" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.6" width="6" height="10.4" rx="3"/><path d="M5.4 11.4a6.6 6.6 0 0 0 13.2 0M12 18v2.4M8.6 20.4h6.8"/></svg>
+          <span>会议纪要</span>
+        </button>
+        <button data-view="summary" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.8h12v16.4l-6-3.6-6 3.6z"/><path d="M9.2 8.2h5.6M9.2 11.4h5.6"/></svg>
+          <span>阶段总结</span>
+        </button>
+        <button data-act="account" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.4" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+          <span>账号设置</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.6 15.6 4 4"/></svg>
+        <input id="searchInput" type="search" placeholder="搜索记录、标签、内容关键词…" autocomplete="off" />
+        <button class="search-clear hidden" id="searchClear" type="button" aria-label="清除">×</button>
+      </div>
+      <button class="btn primary" id="newNoteBtn" type="button">
+        <span class="plus">＋</span> 记一条
+      </button>
+    </header>
+
+    <div class="content" id="content">
+
+      <!-- 今天 -->
+      <section class="view" id="view-today">
+        <div class="page-head">
+          <div>
+            <h1 id="todayTitle">今天</h1>
+            <p class="sub" id="todaySub">接上昨天的思路。</p>
+          </div>
+          <button class="btn ghost" id="todayWriteBtn" type="button">写今日笔记</button>
+        </div>
+
+        <form class="composer card" id="todayComposer">
+          <textarea id="todayInput" rows="2" placeholder="今天想记点什么？"></textarea>
+          <div class="composer-bar">
+            <span class="hint">保存后 AI 会整理 · Ctrl / ⌘ + Enter</span>
+            <button class="btn primary" type="submit">记下</button>
+          </div>
+        </form>
+
+        <div id="todayBody"></div>
+      </section>
+
+      <!-- 每日笔记 -->
+      <section class="view hidden" id="view-daily">
+        <div class="page-head">
+          <div>
+            <h1 id="dailyTitle">每日笔记</h1>
+            <p class="sub" id="dailySub">一天一页，随手写。</p>
+          </div>
+          <div class="daily-nav">
+            <button class="icon-btn" id="dailyPrev" type="button" aria-label="前一天">‹</button>
+            <button class="btn ghost" id="dailyTodayBtn" type="button">今天</button>
+            <button class="icon-btn" id="dailyNext" type="button" aria-label="后一天">›</button>
+            <button class="btn ghost" id="dailyHistoryBtn" type="button">历史 · 0</button>
+          </div>
+        </div>
+
+        <div class="daily-editor card">
+          <textarea id="dailyInput" placeholder="今天发生了什么？想到什么就写什么…&#10;可以写 [[笔记标题]] 把两条记录连起来。"></textarea>
+          <div class="daily-foot">
+            <span id="dailyStatus">写点什么，停手 1.5 秒自动保存</span>
+            <span id="dailyCount">0 字</span>
+          </div>
+        </div>
+
+        <div id="dailySide"></div>
+      </section>
+
+      <!-- 日历 -->
+      <section class="view hidden" id="view-calendar">
+        <div class="page-head">
+          <div>
+            <h1 id="calTitle">日历</h1>
+            <p class="sub">有内容的日子会亮起来，点一天就能翻回去，也能直接加待办或笔记。</p>
+          </div>
+          <div class="daily-nav">
+            <button class="btn primary" id="calAddBtn" type="button">＋ 新建</button>
+            <div class="seg" id="calModeSeg">
+              <button class="seg-item active" data-mode="month" type="button">月历</button>
+              <button class="seg-item" data-mode="gantt" type="button">甘特图</button>
+            </div>
+            <button class="icon-btn" id="calPrev" type="button" aria-label="上个月">‹</button>
+            <button class="btn ghost" id="calTodayBtn" type="button">今天</button>
+            <button class="icon-btn" id="calNext" type="button" aria-label="下个月">›</button>
+          </div>
+        </div>
+
+        <div class="card cal-card" id="calMonthCard">
+          <div class="cal-week">
+            <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+
+        <div class="card gantt-card hidden" id="ganttCard"></div>
+
+        <div class="cal-detail card hidden" id="calDetail"></div>
+      </section>
+
+      <!-- 灵感抽屉 -->
+      <section class="view hidden" id="view-inbox">
+        <div class="page-head">
+          <div>
+            <h1>灵感抽屉</h1>
+            <p class="sub" id="inboxSub">零散的想法先丢进来，管家负责整理。</p>
+          </div>
+          <div class="seg" id="kindSeg">
+            <button class="seg-item active" data-kind="all" type="button">全部</button>
+            <button class="seg-item" data-kind="idea" type="button">想法</button>
+            <button class="seg-item" data-kind="material" type="button">资料</button>
+            <button class="seg-item" data-kind="task" type="button">待办</button>
+            <button class="seg-item" data-kind="question" type="button">疑问</button>
+          </div>
+        </div>
+
+        <div class="filter-chip hidden" id="tagFilterChip">
+          <span>标签筛选：<strong id="tagFilterName"></strong></span>
+          <button type="button" id="tagFilterClear">清除</button>
+        </div>
+
+        <form class="composer card" id="composer">
+          <textarea id="composerInput" rows="3" placeholder="随手记下…&#10;例如：下周三前把合同终稿发给张律师，顺便确认付款节点"></textarea>
+          <div class="attach-preview hidden" id="attachPreview"></div>
+          <div class="composer-bar">
+            <span class="hint">保存后 AI 会自动分类、写摘要、提炼重点并拆出待办 · 写 [[笔记标题]] 可以连到别的记录</span>
+            <button class="btn ghost" id="attachBtn" type="button" title="贴图（也可直接 Ctrl+V 粘贴截图）">🖼 贴图</button>
+            <input type="file" id="attachInput" accept="image/*" multiple hidden />
+            <button class="btn primary" id="saveNoteBtn" type="submit">记录并整理</button>
+          </div>
+        </form>
+
+        <div class="stats" id="stats"></div>
+        <div class="note-list" id="noteList"></div>
+      </section>
+
+      <!-- 待办 -->
+      <section class="view hidden" id="view-todos">
+        <div class="page-head">
+          <div>
+            <h1>待办清单</h1>
+            <p class="sub">从记录里自动拆出来的行动，也可以手动添加。</p>
+          </div>
+          <button class="btn ghost" id="organizeTodosBtn" type="button">
+            <span class="spark">✦</span> 让 AI 帮我整理
+          </button>
+        </div>
+
+        <form class="todo-add card" id="todoForm">
+          <div class="todo-add-main">
+            <input id="todoInput" type="text" placeholder="待办标题，例如：整理季度复盘材料" maxlength="120" />
+            <textarea id="todoContent" rows="2" placeholder="补充内容（可选）：具体要求、背景、链接…" maxlength="1000"></textarea>
+            <div class="tag-input" id="todoTagBox">
+              <span class="tag-chips" id="todoTagChips"></span>
+              <input id="todoTagInput" type="text" placeholder="加标签，回车确认" maxlength="12" />
+            </div>
+          </div>
+          <div class="todo-add-side">
+            <input id="todoDue" type="date" aria-label="期望完成日期" title="期望什么时候完成（可选）" />
+            <select id="todoPriority" aria-label="优先级">
+              <option value="normal">普通</option>
+              <option value="high">重要</option>
+              <option value="low">不急</option>
+            </select>
+            <button class="btn primary" type="submit">添加</button>
+          </div>
+        </form>
+        <div class="attach-preview hidden" id="todoAttachPreview" style="margin:-8px 0 14px"></div>
+
+        <div class="tag-cloud todo-tags-filter hidden" id="todoTagCloud"></div>
+
+        <div class="plan-panel card hidden" id="todoPlan">
+          <div class="plan-head">
+            <h3>AI 整理建议</h3>
+            <button class="icon-btn" id="closePlanBtn" type="button" aria-label="关闭">×</button>
+          </div>
+          <div class="plan-body" id="todoPlanBody"></div>
+        </div>
+
+        <div class="todo-groups" id="todoGroups"></div>
+      </section>
+
+      <!-- 图片库 -->
+      <section class="view hidden" id="view-gallery">
+        <div class="page-head">
+          <div>
+            <h1>图片库</h1>
+            <p class="sub">所有贴过的图都自动收在这里，可跳回来源。</p>
+          </div>
+        </div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </section>
+
+      <!-- 知识库 -->
+      <section class="view hidden" id="view-knowledge">
+        <div class="page-head">
+          <div>
+            <h1>知识库</h1>
+            <p class="sub">沉淀经验、知识和案例，要用的时候一搜就到，还能一键复用。</p>
+          </div>
+          <button class="btn primary" id="kbNewBtn" type="button">＋ 新建知识</button>
+        </div>
+
+        <form class="kb-form card hidden" id="kbForm">
+          <input id="kbTitle" type="text" placeholder="标题，例如：合同评审要盯的 5 个节点" maxlength="80" />
+          <textarea id="kbContent" rows="4" placeholder="正文：经验、做法、踩过的坑、可复用的案例……"></textarea>
+          <div class="kb-form-row">
+            <input id="kbTags" type="text" placeholder="标签，用空格分隔，如：合同 法务" maxlength="60" />
+            <input id="kbScenario" type="text" placeholder="适用场景（可选），如：签新客户合同前" maxlength="60" />
+          </div>
+          <div class="kb-attach" id="kbDropZone">
+            <div class="attach-preview hidden" id="kbAttachPreview"></div>
+            <div class="doc-preview hidden" id="kbDocPreview"></div>
+            <div class="kb-attach-bar">
+              <button class="btn ghost sm" id="kbAttachBtn" type="button">＋ 贴图</button>
+              <button class="btn ghost sm" id="kbDocsBtn" type="button">＋ 传文件</button>
+              <span class="hint">PDF、表格、压缩包等资料都能放，也可以直接拖进来</span>
+            </div>
+          </div>
+          <p class="field-error" id="kbError"></p>
+          <div class="composer-bar">
+            <span class="hint">保存后可以搜索、按标签筛选；遇到类似的事直接「复用」</span>
+            <button class="btn ghost" id="kbCancelBtn" type="button" hidden>取消</button>
+            <button class="btn primary" id="kbSaveBtn" type="submit">保存</button>
+          </div>
+        </form>
+
+        <div class="kb-toolbar">
+          <div class="search kb-search">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.6 15.6 4 4"/></svg>
+            <input id="kbSearch" type="search" placeholder="搜索知识、经验、案例、标签…" autocomplete="off" />
+            <button class="search-clear hidden" id="kbSearchClear" type="button" aria-label="清除">×</button>
+          </div>
+          <div class="tag-cloud kb-tags" id="kbTagCloud"></div>
+        </div>
+
+        <div class="kb-list" id="kbList"></div>
+      </section>
+
+      <!-- 会议纪要 -->
+      <section class="view hidden" id="view-meetings">
+        <div class="page-head">
+          <div>
+            <h1>会议纪要</h1>
+            <p class="sub">一键录音，实时转成文字，AI 区分发言人并整理成纪要。</p>
+          </div>
+        </div>
+
+        <div class="card rec-card">
+          <div class="rec-main">
+            <button class="rec-btn" id="recBtn" type="button" title="开始录音">
+              <span class="rec-mic">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.6" width="6" height="10.4" rx="3"/><path d="M5.4 11.4a6.6 6.6 0 0 0 13.2 0M12 18v2.4M8.6 20.4h6.8"/></svg>
+              </span>
+              <span class="rec-label" id="recLabel">开始录音</span>
+              <span class="rec-timer hidden" id="recTimer">00:00</span>
+            </button>
+            <p class="rec-note" id="recNote">点一下开始，再点一下结束。录音会保存，说话内容实时转成文字。<br/>需要浏览器允许使用麦克风；推荐用 Edge 或 Chrome。</p>
+          </div>
+          <div class="rec-live hidden" id="recLive">
+            <div class="rec-live-label">正在识别…</div>
+            <div class="rec-segs" id="recSegs"></div>
+            <div class="rec-interim" id="recInterim"></div>
+          </div>
+        </div>
+
+        <div class="sec"><div class="sec-head"><h2>历史会议</h2><em id="meetingCount"></em></div>
+          <div class="meeting-list" id="meetingList"></div>
+        </div>
+      </section>
+
+      <!-- 问答 -->
+      <section class="view hidden" id="view-ask">
+        <div class="page-head">
+          <div>
+            <h1>智能问答</h1>
+            <p class="sub">基于你的记录回答，并标注引用来源。</p>
+          </div>
+          <button class="btn ghost" id="newChatBtn" type="button">新对话</button>
+        </div>
+
+        <div class="chat card">
+          <div class="chat-scroll" id="chatScroll"></div>
+          <form class="chat-input" id="chatForm">
+            <textarea id="chatInput" rows="1" placeholder="问问你的记录，例如：我最近关于产品方向的想法有哪些？"></textarea>
+            <button class="btn primary send" id="sendBtn" type="submit">发送</button>
+            <button class="btn ghost hidden" id="stopBtn" type="button">停止</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- 阶段总结 -->
+      <section class="view hidden" id="view-summary">
+        <div class="page-head">
+          <div>
+            <h1>阶段总结</h1>
+            <p class="sub">回看这段时间记录了什么，以及接下来该做什么。</p>
+          </div>
+          <div class="summary-actions">
+            <select id="summaryPeriod" aria-label="时间范围">
+              <option value="7d">最近 7 天</option>
+              <option value="30d" selected>最近 30 天</option>
+              <option value="all">全部记录</option>
+            </select>
+            <button class="btn primary" id="generateSummaryBtn" type="button">生成阶段总结</button>
+          </div>
+        </div>
+        <div class="summary-list" id="summaryList"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <aside class="rail" id="rail" aria-label="管家动态"></aside>
+</div>
+
+<!-- 右侧抽屉：记录详情 / 版本历史 -->
+<div class="drawer hidden" id="drawer">
+  <div class="drawer-backdrop" data-dclose="1"></div>
+  <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <header class="drawer-head">
+      <div class="drawer-head-main">
+        <h2 id="drawerTitle">…</h2>
+        <span class="drawer-sub" id="drawerSub"></span>
+      </div>
+      <button class="modal-close" id="drawerClose" type="button" aria-label="关闭">×</button>
+    </header>
+    <div class="drawer-body" id="drawerBody"></div>
+  </section>
+</div>
+
+<!-- 详情弹层 -->
+<div class="modal hidden" id="modal">
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" type="button" aria-label="关闭">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- 云 SDK 本地内置（离线可用、不依赖 CDN）；万一资源缺失再回退 CDN -->
+<script src="vendor/workbuddy-cloud-sdk.js"></script>
+<script>
+  if (!window.WorkBuddyCloud) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@tencent-ai/workbuddy-cloud-sdk@dev/lib/index.global.js"><\/script>');
+  }
+</script>
+<script src="app.js"></script>
+</body>
+</html>

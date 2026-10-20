@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">管家</string>
+    <string name="title_activity_main">管家</string>
+    <string name="package_name">cn.butler.app</string>
+    <string name="custom_url_scheme">cn.butler.app</string>
+</resources>

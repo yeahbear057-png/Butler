@@ -1,0 +1,60 @@
+{
+  "name": "butler-desktop",
+  "productName": "管家",
+  "version": "1.0.6",
+  "description": "管家 · 让零散记录长成体系（Windows 桌面版）",
+  "main": "main.js",
+  "author": "butler",
+  "license": "MIT",
+  "scripts": {
+    "prepare:web": "node scripts/prepare-web.js",
+    "start": "npm run prepare:web && electron .",
+    "dist": "npm run prepare:web && electron-builder --win nsis",
+    "dist:portable": "npm run prepare:web && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "pngjs": "^7.0.0"
+  },
+  "build": {
+    "appId": "cn.butler.desktop",
+    "productName": "管家",
+    "copyright": "管家",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "afterPack": "./scripts/after-pack.js",
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "butler-setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "管家",
+      "uninstallDisplayName": "管家",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  }
+}
