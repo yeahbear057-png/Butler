@@ -28,9 +28,10 @@
 
   /* ---------------- 版本信息（侧栏悬停可见） ----------------
      三段式版本号：小迭代 V1.0.1，大版本 V1.1.0 */
-  var APP_VERSION = 'V1.0.7';
+  var APP_VERSION = 'V1.0.8';
   var APP_UPDATES = [
-    { v: 'V1.0.7', date: '2026-10-20', items: [
+    { v: 'V1.0.8', date: '2026-10-20', items: [
+      '修复验证码+密码一起登录时报「登录失败」：服务端要求 +86 格式手机号，已全面适配',
       '修复验证码登录报「session is invalid / another client」：登录前自动清理过期本地会话',
       '验证码登录页可直接设置密码，老账号也能一步设好，之后用密码登录',
       '桌面版新增启动后自动检查更新，有新版本会弹窗提示一键前往下载'
@@ -598,6 +599,14 @@
   function isPhone(v) { return /^1\d{10}$/.test(v); }
   function cleanPhone(el) { return String(el.value || '').replace(/\D/g, ''); }
 
+  /* 服务端裸端点要求 E.164 风格：`+86 15201997518`（与 SDK 内部 normalizePhone 一致） */
+  function e164Phone(phone) {
+    var t = String(phone || '').replace(/\D/g, '');
+    if (t.indexOf('0086') === 0) t = t.slice(4);
+    else if (t.indexOf('86') === 0 && t.length === 13) t = t.slice(2);
+    return /^1\d{10}$/.test(t) ? '+86 ' + t : String(phone || '');
+  }
+
   function startCountdown(sec) {
     var left = sec;
     otpSendBtn.disabled = true;
@@ -737,7 +746,7 @@
   }
 
   async function rawSignUp(phone, password, vt) {
-    var body = { phone_number: phone, verification_token: vt };
+    var body = { phone_number: e164Phone(phone), verification_token: vt };
     if (password) body.password = password;
     var r = await cloud.auth.request('/v1/signup', { method: 'POST', body: body });
     if (r && r.error) throw r.error;
@@ -747,16 +756,17 @@
   async function rawSignInWithToken(phone, vt) {
     var r = await cloud.auth.request('/v1/signin', {
       method: 'POST',
-      body: { username: phone, verification_token: vt }
+      body: { username: e164Phone(phone), verification_token: vt }
     });
     if (r && r.error) throw r.error;
     return commitRawSession(r.data);
   }
 
   async function rawResetPassword(phone, next, vt) {
+    var phones = e164Phone(phone);
     var bodies = [
-      { phone_number: phone, new_password: next, verification_token: vt },
-      { username: phone, new_password: next, verification_token: vt }
+      { phone_number: phones, new_password: next, verification_token: vt },
+      { username: phones, new_password: next, verification_token: vt }
     ];
     var lastErr = null;
     for (var i = 0; i < bodies.length; i++) {
@@ -842,7 +852,7 @@
             sess = await rawSignInWithToken(phone, vt);
           } catch (e2) {
             if (resetOk) throw new Error('密码已设置成功，但自动登录失败：请到「密码登录」用新密码进入');
-            throw new Error('登录失败，请点「重新获取」重发验证码再试');
+            throw new Error('登录失败（' + (pwdFailMsg || errorMessage(e2)) + '）；请点「重新获取」重发验证码再试');
           }
         }
       } else {
@@ -1093,10 +1103,11 @@
   var pwdResetState = { vid: '', phone: '' };
 
   async function sendPwdResetSms(phone) {
+    var phones = e164Phone(phone);
     var bodies = [
-      { phone_number: phone, usage: 'PASSWORD_RESET', target: 'USER' },
-      { phone_number: phone, target: 'USER' },
-      { phone_number: phone, target: 'ANY' }
+      { phone_number: phones, usage: 'PASSWORD_RESET', target: 'USER' },
+      { phone_number: phones, target: 'USER' },
+      { phone_number: phones, target: 'ANY' }
     ];
     var lastErr = null;
     for (var i = 0; i < bodies.length; i++) {
@@ -1122,10 +1133,10 @@
     var d = (v && v.data) || {};
     var vt = typeof d.verification_token === 'string' ? d.verification_token : '';
     if (!vt) throw new Error('验证码校验没有通过');
-    var phone = pwdResetState.phone;
+    var phones = e164Phone(pwdResetState.phone);
     var bodies = [
-      { phone_number: phone, new_password: next, verification_token: vt },
-      { username: phone, new_password: next, verification_token: vt }
+      { phone_number: phones, new_password: next, verification_token: vt },
+      { username: phones, new_password: next, verification_token: vt }
     ];
     var lastErr = null;
     for (var i = 0; i < bodies.length; i++) {

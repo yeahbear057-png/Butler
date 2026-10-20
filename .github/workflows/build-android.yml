@@ -68,8 +68,8 @@ jobs:
       - name: 整理产物
         run: |
           mkdir -p ../out
-          cp android/app/build/outputs/apk/release/*.apk ../out/butler-1.0.7.apk || \
-          cp android/app/build/outputs/apk/debug/*.apk ../out/butler-1.0.7-debug.apk
+          cp android/app/build/outputs/apk/release/*.apk ../out/butler-1.0.8.apk || \
+          cp android/app/build/outputs/apk/debug/*.apk ../out/butler-1.0.8-debug.apk
           ls -lh ../out
 
       - name: 上传构建产物

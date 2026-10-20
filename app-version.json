@@ -1,5 +1,5 @@
 {
-  "version": "1.0.7",
-  "notes": "1. 修复验证码登录报「session is invalid / another client」的问题。\n2. 验证码登录页可直接设置密码，老账号也能一步设好，之后用密码登录。\n3. 桌面版新增启动后自动检查更新，有新版本弹窗提示。",
+  "version": "1.0.8",
+  "notes": "1. 修复验证码+密码一起登录报「登录失败」：服务端要求 +86 格式手机号，已全面适配。\n2. 验证码登录页可直接设置/更新密码，之后可用密码登录。\n3. 桌面版启动自动检查更新。",
   "url": "https://github.com/yeahbear057-png/Butler/releases/latest"
 }

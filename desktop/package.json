@@ -1,7 +1,7 @@
 {
   "name": "butler-desktop",
   "productName": "管家",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "管家 · 让零散记录长成体系（Windows 桌面版）",
   "main": "main.js",
   "author": "butler",
