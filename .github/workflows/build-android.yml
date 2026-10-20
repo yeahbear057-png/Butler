@@ -35,16 +35,25 @@ jobs:
       - name: 同步网页资源到 Android 工程
         run: npm run sync
 
-      - name: 还原签名证书
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: 还原签名证书（未配置 secrets 时跳过，改用 debug 签名）
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/butler-release.jks
-          cat > android/keystore.properties <<EOF
-          storeFile=butler-release.jks
-          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "未配置签名 secrets，将使用 debug 签名（仍可安装）"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/butler-release.jks
+          {
+            echo "storeFile=butler-release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/keystore.properties
+          echo "已写入签名配置"
 
       - name: 构建 APK
         working-directory: mobile/android
