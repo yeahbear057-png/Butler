@@ -6,6 +6,10 @@ on:
     tags:
       - "v*"
 
+# 打 tag 时要创建 Release，默认 token 是只读的，必须显式授权
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
